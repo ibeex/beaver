@@ -45,7 +45,7 @@ class Worker(object):
         if self.config.path is not None:
             self.folder = os.path.realpath(args.path)
             assert os.path.isdir(self.folder), "%s does not exists" \
-                                            % self.folder
+                                               % self.folder
         assert callable(callback)
         self.update_files()
         # The first time we run the script we move all file markers at EOF.
@@ -80,7 +80,7 @@ class Worker(object):
         ls = os.listdir(self.folder)
         if self.extensions:
             return [x for x in ls if os.path.splitext(x)[1][1:] \
-                                           in self.extensions]
+                in self.extensions]
         else:
             return ls
 
@@ -197,13 +197,20 @@ def run_worker(options):
     utils.log("Logging using the {0} transport".format(options.transport))
     if options.transport == 'redis':
         import beaver.redis_transport
+
         transport = beaver.redis_transport.RedisTransport()
     elif options.transport == 'stdout':
         import beaver.stdout_transport
+
         transport = beaver.stdout_transport.StdoutTransport()
     elif options.transport == 'zmq':
         import beaver.zmq_transport
+
         transport = beaver.zmq_transport.ZmqTransport()
+    elif options.transport == 'syslog':
+        import beaver.syslog_transport
+
+        transport = beaver.syslog_transport.SyslogTransport()
     else:
         raise Exception('Invalid transport {0}'.format(options.transport))
 

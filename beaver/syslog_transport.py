@@ -1,45 +1,37 @@
-import datetime
-import os
 import socket
-import ujson as json
-import zmq
+import os
 
 import beaver.transport
 
 
-class ZmqTransport(beaver.transport.Transport):
+class SyslogTransport(beaver.transport.Transport):
 
     def __init__(self):
-        zeromq_address = os.environ.get("ZEROMQ_ADDRESS", "tcp://localhost:2120")
-        zeromq_bind = os.environ.get("BIND", False)
-        self.current_host = socket.gethostname()
+        FACILITY = {
+            'kern': 0, 'user': 1, 'mail': 2, 'daemon': 3,
+            'auth': 4, 'syslog': 5, 'lpr': 6, 'news': 7,
+            'uucp': 8, 'cron': 9, 'authpriv': 10, 'ftp': 11,
+            'local0': 16, 'local1': 17, 'local2': 18, 'local3': 19,
+            'local4': 20, 'local5': 21, 'local6': 22, 'local7': 23,
+        }
+        LEVEL = {
+            'emerg': 0, 'alert': 1, 'crit': 2, 'err': 3,
+            'warning': 4, 'notice': 5, 'info': 6, 'debug': 7
+        }
 
-        self.ctx = zmq.Context()
-        self.pub = self.ctx.socket(zmq.PUSH)
-
-        if zeromq_bind:
-            self.pub.bind(zeromq_address)
-        else:
-            self.pub.connect(zeromq_address)
+        self.syslog = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.host = os.environ.get("SYSLOG_ADDRESS", "127.0.0.1")
+        self.port = int(os.environ.get("SYSLOG_PORT", "514"))
+        self.level = LEVEL[os.environ.get("SYSLOG_LEVEL", "info")]
+        self.facility = FACILITY[os.environ.get("SYSLOG_FACILITY", "user")]
 
     def callback(self, filename, lines):
-        timestamp = datetime.datetime.now().isoformat()
         for line in lines:
-            json_msg = json.dumps({
-                '@source': "file://{0}{1}".format(self.current_host, filename),
-                '@type': "file",
-                '@tags': [],
-                '@fields': {},
-                '@timestamp': timestamp,
-                '@source_host': self.current_host,
-                '@source_path': filename,
-                '@message': line.strip(os.linesep),
-            })
-            self.pub.send(json_msg)
+            msg = '<%d>%s:%s' % (self.level + self.facility * 8, filename, line)
+            self.syslog.sendto(msg, (self.host, self.port))
 
     def interrupt(self):
-        self.pub.close()
-        self.ctx.term()
+        self.syslog.close()
 
     def unhandled(self):
         return True
