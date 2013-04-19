@@ -1,3 +1,10 @@
-
+*.pyc
+*.egg
+*.egg-info
+*.swp
+*.db
+build
+dist
+pkg
 .idea/*
 .idea/scopes/*
