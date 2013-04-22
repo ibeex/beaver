@@ -23,13 +23,7 @@ class SyslogTransport(BaseTransport):
         self.level = LEVEL[beaver_config.get('syslog_level')]
         self.facility = FACILITY[beaver_config.get('syslog_facility')]
 
-    def callback(self, filename, lines):
+    def callback(self, filename, lines, **kwargs):
+
         for line in lines:
-            msg = '<%d>%s:%s' % (self.level + self.facility * 8, filename, line)
-            self._sock.sendto(msg, self._address)
-
-    def interrupt(self):
-        self._sock.close()
-
-    def unhandled(self):
-        return True
+            self._sock.sendto(self.format(filename, line, **kwargs), self._address)

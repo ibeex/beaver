@@ -51,11 +51,15 @@ class BaseTransport(object):
         def string_formatter(data):
             return '[{0}] [{1}] {2}'.format(data['@source_host'], data['@timestamp'], data['@message'])
 
+        def syslog_formatter(data):
+            return '[{0}] {1}'.format(data['@source_path'], data['@message'])
+
         self._formatters['json'] = json.dumps
         self._formatters['msgpack'] = msgpack.packb
         self._formatters['null'] = null_formatter
         self._formatters['rawjson'] = rawjson_formatter
         self._formatters['string'] = string_formatter
+        self._formatters['syslog'] = syslog_formatter
 
     def callback(self, filename, lines):
         """Processes a set of lines for a filename"""
