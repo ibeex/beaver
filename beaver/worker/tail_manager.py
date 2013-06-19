@@ -5,13 +5,13 @@ import stat
 import time
 
 from beaver.utils import eglob
-from beaver.worker.base_log import BaseLog
+from beaver.base_log import BaseLog
 from beaver.worker.tail import Tail
 
 
 class TailManager(BaseLog):
 
-    def __init__(self, paths, beaver_config, queue_consumer_function, callback, logger=None):
+    def __init__(self, beaver_config, queue_consumer_function, callback, logger=None):
         super(TailManager, self).__init__(logger=logger)
         self._active = False
         self._beaver_config = beaver_config
@@ -25,7 +25,6 @@ class TailManager(BaseLog):
         self._update_time = None
 
         self._active = True
-        self.watch(paths)
 
     def listdir(self):
         """HACK around not having a beaver_config stanza
@@ -45,7 +44,8 @@ class TailManager(BaseLog):
                 logger=self._logger
             )
 
-            self._tails[tail.fid()] = tail
+            if tail.active:
+                self._tails[tail.fid()] = tail
 
     def run(self, interval=0.1,):
         while self._active:
@@ -64,6 +64,7 @@ class TailManager(BaseLog):
                 if not self._tails[fid].active:
                     del self._tails[fid]
 
+            self.update_files()
             time.sleep(interval)
 
     def update_files(self):

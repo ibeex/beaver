@@ -30,6 +30,10 @@ class BeaverConfig():
             # allow ignoring copytruncate results
             'ignore_truncate': '0',
 
+            # buffered tokenization
+            'delimiter': "\n",
+            'size_limit': '',
+
             'message_format': '',
             'sincedb_write_interval': '15',
             'stat_interval': '1',
@@ -226,7 +230,7 @@ class BeaverConfig():
 
     def _parse(self, args):
         def _main_parser(config):
-            transpose = ['config', 'debug', 'daemonize', 'files', 'format', 'fqdn', 'hostname', 'path', 'pid', 'transport']
+            transpose = ['config', 'confd_path', 'debug', 'daemonize', 'files', 'format', 'fqdn', 'hostname', 'path', 'pid', 'transport']
             namspace_dict = vars(args)
             for key in transpose:
                 if key not in namspace_dict or namspace_dict[key] is None or namspace_dict[key] == '':
@@ -272,6 +276,9 @@ class BeaverConfig():
             for key in require_float:
                 if config[key] is not None:
                     config[key] = float(config[key])
+
+            if config.get('format') == 'null':
+                config['format'] = 'raw'
 
             if config['files'] is not None and type(config['files']) == str:
                 config['files'] = config['files'].split(',')
@@ -339,17 +346,12 @@ class BeaverConfig():
             except TypeError:
                 config['tags'] = []
 
-            try:
-                file_type = config.get('type', 'file')
-                if not file_type:
-                    file_type = 'file'
-                config['type'] = file_type
-            except:
-                config['type'] = 'file'
+            if config.get('format') == 'null':
+                config['format'] = 'raw'
 
-            if config['type']:
-                if raise_exceptions:
-                    raise Exception('Missing mandatory config "type"')
+            file_type = config.get('type', None)
+            if not file_type:
+                config['type'] = 'file'
 
             require_bool = ['debug', 'ignore_empty', 'ignore_truncate']
             for k in require_bool:
@@ -368,6 +370,7 @@ class BeaverConfig():
             section_defaults=self._section_defaults,
             main_parser=_main_parser,
             section_parser=_section_parser,
+            path_from_main='confd_path'
         )
 
         config = conf.raw()

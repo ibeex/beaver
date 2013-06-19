@@ -1,3 +1,4 @@
+.. image:: https://secure.travis-ci.org/josegonzalez/beaver.png
 ======
 Beaver
 ======
@@ -21,7 +22,7 @@ From Github::
 
 From PyPI::
 
-    pip install beaver==28
+    pip install beaver==29
 
 Usage
 =====
@@ -143,16 +144,16 @@ Example 3: Listen to all files in the default path of /var/log on standard out a
 
 Example 4: Sending logs from /var/log files to a redis list::
 
-    # /etc/beaver.conf
+    # /etc/beaver/conf
     [beaver]
     redis_url: redis://localhost:6379/0
 
     # From the commandline
-    beaver  -c /etc/beaver.conf -t redis
+    beaver  -c /etc/beaver/conf -t redis
 
 Example 5: Zeromq listening on port 5556 (all interfaces)::
 
-    # /etc/beaver.conf
+    # /etc/beaver/conf
     [beaver]
     zeromq_address: tcp://*:5556
 
@@ -168,12 +169,12 @@ Example 5: Zeromq listening on port 5556 (all interfaces)::
     output { stdout { debug => true } }
 
     # From the commandline
-    beaver  -c /etc/beaver.conf -m bind -t zmq
+    beaver  -c /etc/beaver/conf -m bind -t zmq
 
 
 Example 6: Zeromq connecting to remote port 5556 on indexer::
 
-    # /etc/beaver.conf
+    # /etc/beaver/conf
     [beaver]
     zeromq_address: tcp://indexer:5556
 
@@ -189,14 +190,14 @@ Example 6: Zeromq connecting to remote port 5556 on indexer::
     output { stdout { debug => true } }
 
     # on the commandline
-    beaver -c /etc/beaver.conf -m connect -t zmq
+    beaver -c /etc/beaver/conf -m connect -t zmq
 
 Example 7: Real-world usage of Redis as a transport::
 
     # in /etc/hosts
     192.168.0.10 redis-internal
 
-    # /etc/beaver.conf
+    # /etc/beaver/conf
     [beaver]
     redis_url: redis://redis-internal:6379/0
     redis_namespace: app:unmappable
@@ -213,11 +214,11 @@ Example 7: Real-world usage of Redis as a transport::
     output { stdout { debug => true } }
 
     # From the commandline
-    beaver -c /etc/beaver.conf -f /var/log/unmappable.log -t redis
+    beaver -c /etc/beaver/conf -f /var/log/unmappable.log -t redis
 
 Example 8: RabbitMQ connecting to defaults on remote broker::
 
-    # /etc/beaver.conf
+    # /etc/beaver/conf
     [beaver]
     rabbitmq_host: 10.0.0.1
 
@@ -236,22 +237,23 @@ Example 8: RabbitMQ connecting to defaults on remote broker::
     output { stdout { debug => true } }
 
     # From the commandline
-    beaver -c /etc/beaver.conf -t rabbitmq
+    beaver -c /etc/beaver/conf -t rabbitmq
 
 Example 9: Read config from config.ini and put to stdout::
 
-    # /etc/beaver.conf:
+    # /etc/beaver/conf:
     ; follow a single file, add a type, some tags and fields
     [/tmp/somefile]
     type: mytype
     tags: tag1,tag2
     add_field: fieldname1,fieldvalue1[,fieldname2,fieldvalue2, ...]
 
-    ; follow all logs in /var/log except those with `messages` or `secure` in the name
+    ; follow all logs in /var/log except those with `messages` or `secure` in the name.
+    ; The exclude tag must be a valid python regular expression.
     [/var/log/*log]
     type: syslog
     tags: sys
-    exclude: (messages,secure)
+    exclude: (messages|secure)
 
     ; follow /var/log/messages.log and /var/log/secure.log using file globbing
     [/var/log/{messages,secure}.log]
@@ -259,11 +261,11 @@ Example 9: Read config from config.ini and put to stdout::
     tags: sys
 
     # From the commandline
-    beaver -c /etc/beaver.conf -t stdout
+    beaver -c /etc/beaver/conf -t stdout
 
 Example 10: UDP transport::
 
-    # /etc/beaver.conf
+    # /etc/beaver/conf
     [beaver]
     udp_host: 127.0.0.1
     udp_port: 9999
@@ -279,11 +281,11 @@ Example 10: UDP transport::
     output { stdout { debug => true } }
 
     # From the commandline
-    beaver -c /etc/beaver.conf -t udp
+    beaver -c /etc/beaver/conf -t udp
 
 Example 11: SQS Transport::
 
-    # /etc/beaver.conf
+    # /etc/beaver/conf
     [beaver]
     sqs_aws_region: us-east-1
     sqs_aws_queue: logstash-input
@@ -292,7 +294,7 @@ Example 11: SQS Transport::
 
     # logstash indexer config:
     input {
-      sqs_fillz {
+      sqs {
         queue => "logstash-input"
         type => "shipper-input"
         format => "json_event"
@@ -303,7 +305,7 @@ Example 11: SQS Transport::
     output { stdout { debug => true } }
 
     # From the commandline
-    beaver -c /etc/beaver.conf -t sqs
+    beaver -c /etc/beaver/conf -t sqs
 
 Example 12: [Raw Json Support](http://blog.pkhamre.com/2012/08/23/logging-to-logstash-json-format-in-nginx/::
 
@@ -311,7 +313,7 @@ Example 12: [Raw Json Support](http://blog.pkhamre.com/2012/08/23/logging-to-log
 
 Example 13: Mqtt transport using Mosquitto::
 
-    # /etc/beaver.conf
+    # /etc/beaver/conf
     [beaver]
     mqtt_client_id: 'beaver_client'
     mqtt_topic: '/logstash'
@@ -331,13 +333,13 @@ Example 13: Mqtt transport using Mosquitto::
     output { stdout { debug => true } }
 
     # From the commandline
-    beaver -c /etc/beaver.conf -f /var/log/unmappable.log -t redis
+    beaver -c /etc/beaver/conf -f /var/log/unmappable.log -t mqtt
 
 Example 14: Sincedb support using and sqlite3 db
 
 Note that this will require R/W permissions on the file at sincedb path, as Beaver will store the current line for a given filename/file id.::
 
-    # /etc/beaver.conf
+    # /etc/beaver/conf
     [beaver]
     sincedb_path: /etc/beaver/since.db
 
@@ -347,11 +349,30 @@ Note that this will require R/W permissions on the file at sincedb path, as Beav
     sincedb_write_interval: 3 ; time in seconds
 
     # From the commandline
-    beaver -c /etc/beaver.conf -t redis
+    beaver -c /etc/beaver/conf
+
+Example 15: Loading stanzas from /etc/beaver/conf.d/* support::
+
+    # /etc/beaver/conf
+    [beaver]
+    format: json
+
+    # /etc/beaver/conf.d/syslog
+    [/var/log/syslog]
+    type: syslog
+    tags: sys,main
+
+    # /etc/beaver/conf.d/nginx
+    [/var/log/nginx]
+    format: rawjson
+    type: nginx
+    tags: nginx,server
+
+    # From the commandline
+    beaver -c /etc/beaver/conf
 
 
 As you can see, ``beaver`` is pretty flexible as to how you can use/abuse it in production.
-
 
 Todo
 ====
@@ -379,6 +400,13 @@ When using ``copytruncate`` style log rotation, two race conditions can occur:
    watch which may be truncated are generally going to be large enough
    and slow-filling enough that this won't crop up in the wild.
 
+When you get an error similar to ``ImportError: No module named
+_sqlite3`` your python seems to miss the sqlite3-module. This can be the
+case on FreeBSD and probably other systems. If so, use the local package
+manager or port system to build that module. On FreeBSD::
+
+    cd /usr/ports/databases/py-sqlite3
+    sudo make install clean
 
 Credits
 =======

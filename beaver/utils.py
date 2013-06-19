@@ -5,6 +5,7 @@ import itertools
 import logging
 import platform
 import re
+import os
 import sys
 
 import beaver
@@ -14,6 +15,7 @@ logging.basicConfig()
 MAGIC_BRACKETS = re.compile('({([^}]+)})')
 IS_GZIPPED_FILE = re.compile('.gz$')
 REOPEN_FILES = 'linux' not in platform.platform().lower()
+CAN_DAEMONIZE = sys.platform != 'win32'
 
 cached_regices = {}
 
@@ -36,13 +38,13 @@ def parse_args():
     parser.add_argument('-d', '--debug', help='enable debug mode', dest='debug', default=False, action='store_true')
     parser.add_argument('-D', '--daemonize', help='daemonize in the background', dest='daemonize', default=False, action='store_true')
     parser.add_argument('-f', '--files', help='space-separated filelist to watch, can include globs (*.log). Overrides --path argument', dest='files', default=None, nargs='+')
-    parser.add_argument('-F', '--format', help='format to use when sending to transport', default=None, dest='format', choices=['json', 'msgpack', 'raw', 'rawjson', 'string', 'syslog'])
+    parser.add_argument('-F', '--format', help='format to use when sending to transport', default=None, dest='format', choices=['json', 'msgpack', 'raw', 'rawjson', 'string'])
     parser.add_argument('-H', '--hostname', help='manual hostname override for source_host', default=None, dest='hostname')
     parser.add_argument('-m', '--mode', help='bind or connect mode', dest='mode', default=None, choices=['bind', 'connect'])
     parser.add_argument('-l', '--logfile', '-o', '--output', help='file to pipe output to (in addition to stdout)', default=None, dest='output')
     parser.add_argument('-p', '--path', help='path to log files', default=None, dest='path')
     parser.add_argument('-P', '--pid', help='path to pid file', default=None, dest='pid')
-    parser.add_argument('-t', '--transport', help='log transport method', dest='transport', default=None, choices=['rabbitmq', 'redis', 'sqs', 'stdout', 'udp', 'zmq', 'syslog'])
+    parser.add_argument('-t', '--transport', help='log transport method', dest='transport', default=None, choices=['mqtt', 'rabbitmq', 'redis', 'sqs', 'stdout', 'udp', 'zmq'])
     parser.add_argument('-e', '--experimental', help='use experimental version of beaver', dest='experimental', default=False, action='store_true')
     parser.add_argument('-v', '--version', help='output version and quit', dest='version', default=False, action='store_true')
     parser.add_argument('--fqdn', help='use the machine\'s FQDN for source_host', dest='fqdn', default=False, action='store_true')
@@ -65,11 +67,17 @@ def setup_custom_logger(name, args=None, output=None, formatter=None, debug=None
             formatter = logging.Formatter('[%(asctime)s] %(levelname)-7s %(message)s')
 
         handler = logging.StreamHandler()
-        if output is None and has_args and args.daemonize:
+        if output is None and has_args:
             output = args.output
 
+        if output:
+            output = os.path.realpath(output)
+
         if output is not None:
-            handler = logging.FileHandler(output)
+            file_handler = logging.FileHandler(output)
+            if formatter is not False:
+                file_handler.setFormatter(formatter)
+            logger.addHandler(file_handler)
 
         if formatter is not False:
             handler.setFormatter(formatter)
